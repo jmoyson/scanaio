@@ -14,7 +14,7 @@ function getRateLimitKey(req: NextRequest): string {
   return `ratelimit:${ip}`;
 }
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   // Only rate limit /api/check endpoint
   if (!request.nextUrl.pathname.startsWith('/api/check')) {
     return NextResponse.next();
