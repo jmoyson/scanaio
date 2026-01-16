@@ -1,12 +1,22 @@
 /**
- * Stats calculation from cached scans
- * Uses existing `scans` table and parses raw_response for detailed stats
- * Caching is handled at the API route level via Next.js revalidate
+ * Stats Module
+ *
+ * Provides global statistics from the stats table (single row).
+ * Instant reads - no computation needed!
+ *
+ * NOTE ON COUNTING:
+ * - totalKeywords = count of keyword-domain pairs (rankings), NOT unique keywords
+ * - The same keyword "best credit cards" counted once per domain that ranks for it
+ * - This is intentional: we analyze RANKINGS, not unique keyword strings
+ * - UI should say "rankings analyzed" not "keywords analyzed"
  */
 
-import { supabaseAdmin } from './supabase';
+import { getGlobalStats as getStatsRow } from './db/stats';
 
-// Severity distribution tier
+// ============================================================================
+// Types (for backward compatibility with existing components)
+// ============================================================================
+
 export interface SeverityTier {
   name: string;
   label: string;
@@ -15,26 +25,23 @@ export interface SeverityTier {
   color: string;
 }
 
-// Distribution of domains by severity
 export interface SeverityDistribution {
   tiers: SeverityTier[];
   totalDomains: number;
 }
 
-// Impact stats (volume-based)
 export interface ImpactStats {
   totalSearchVolume: number;
-  atRiskSearchVolume: number;
-  atRiskPercent: number;
+  aioSearchVolume: number;
+  aioPercent: number;
 }
 
-// Intent-based stats (using DataForSEO's classification)
 export interface IntentStat {
   intent: string;
   label: string;
   keywordsCount: number;
-  affectedCount: number;
-  affectedPercent: number;
+  aioCount: number;
+  aioPercent: number;
 }
 
 export interface IntentStats {
@@ -42,199 +49,140 @@ export interface IntentStats {
   totalKeywords: number;
 }
 
-// Main stats interface
 export interface Stats {
   totalDomains: number;
   totalKeywords: number;
-  avgAffectedPercent: number;
+  avgAioPercent: number;
   severityDistribution: SeverityDistribution;
   impactStats: ImpactStats;
   intentStats: IntentStats;
 }
 
+// ============================================================================
+// Main Function
+// ============================================================================
+
 /**
- * Get stats from Supabase scans table
- * Calculates severity distribution, impact stats, and intent stats from real data
+ * Get global stats from stats table
+ *
+ * This is now a SINGLE ROW READ - instant!
  */
 export async function getStats(): Promise<Stats | null> {
   try {
-    // Get all scans with raw_response for detailed analysis
-    const { data: scans, error: scansError } = await supabaseAdmin
-      .from('scans')
-      .select('domain, keywords_total, keywords_with_aio, raw_response');
+    const row = await getStatsRow();
 
-    if (scansError) {
-      console.error('Error fetching scans:', scansError);
+    if (!row) {
       return null;
     }
 
-    if (!scans || scans.length === 0) {
-      return null;
-    }
+    // Build severity distribution
+    const severityDistribution: SeverityDistribution = {
+      tiers: [
+        {
+          name: 'critical',
+          label: 'Critical',
+          count: row.severity_critical,
+          percent: row.total_domains > 0
+            ? Math.round((row.severity_critical / row.total_domains) * 100)
+            : 0,
+          color: '#dc2626',
+        },
+        {
+          name: 'high',
+          label: 'High Risk',
+          count: row.severity_high,
+          percent: row.total_domains > 0
+            ? Math.round((row.severity_high / row.total_domains) * 100)
+            : 0,
+          color: '#f97316',
+        },
+        {
+          name: 'medium',
+          label: 'Medium',
+          count: row.severity_medium,
+          percent: row.total_domains > 0
+            ? Math.round((row.severity_medium / row.total_domains) * 100)
+            : 0,
+          color: '#eab308',
+        },
+        {
+          name: 'low',
+          label: 'Low Risk',
+          count: row.severity_low,
+          percent: row.total_domains > 0
+            ? Math.round((row.severity_low / row.total_domains) * 100)
+            : 0,
+          color: '#22c55e',
+        },
+      ],
+      totalDomains: row.total_domains,
+    };
 
-    // Calculate basic totals
-    let totalKeywords = 0;
-    let totalAffected = 0;
+    // Build impact stats
+    const impactStats: ImpactStats = {
+      totalSearchVolume: row.total_search_volume,
+      aioSearchVolume: row.aio_search_volume,
+      aioPercent: Math.round(row.aio_percent),
+    };
 
-    for (const scan of scans) {
-      totalKeywords += scan.keywords_total || 0;
-      totalAffected += scan.keywords_with_aio || 0;
-    }
+    // Build intent stats
+    const totalIntentKeywords =
+      row.intent_informational +
+      row.intent_commercial +
+      row.intent_transactional +
+      row.intent_navigational;
 
-    const avgAffectedPercent = totalKeywords > 0
-      ? Math.round((totalAffected / totalKeywords) * 100)
+    // Estimate based on overall rate
+    const overallAioRate = row.total_keywords > 0
+      ? row.keywords_with_aio / row.total_keywords
       : 0;
 
-    // Calculate severity distribution
-    const severityDistribution = calculateSeverityDistribution(scans);
+    const intents: IntentStat[] = [
+      {
+        intent: 'informational',
+        label: 'Informational',
+        keywordsCount: row.intent_informational,
+        aioCount: Math.round(row.intent_informational * overallAioRate),
+        aioPercent: Math.round(overallAioRate * 100),
+      },
+      {
+        intent: 'commercial',
+        label: 'Commercial',
+        keywordsCount: row.intent_commercial,
+        aioCount: Math.round(row.intent_commercial * overallAioRate),
+        aioPercent: Math.round(overallAioRate * 100),
+      },
+      {
+        intent: 'transactional',
+        label: 'Transactional',
+        keywordsCount: row.intent_transactional,
+        aioCount: Math.round(row.intent_transactional * overallAioRate),
+        aioPercent: Math.round(overallAioRate * 100),
+      },
+      {
+        intent: 'navigational',
+        label: 'Navigational',
+        keywordsCount: row.intent_navigational,
+        aioCount: Math.round(row.intent_navigational * overallAioRate),
+        aioPercent: Math.round(overallAioRate * 100),
+      },
+    ].filter(i => i.keywordsCount > 0);
 
-    // Calculate impact and intent stats from raw_response
-    const { impactStats, intentStats } = calculateDetailedStats(scans);
+    const intentStats: IntentStats = {
+      intents,
+      totalKeywords: totalIntentKeywords,
+    };
 
     return {
-      totalDomains: scans.length,
-      totalKeywords,
-      avgAffectedPercent,
+      totalDomains: row.total_domains,
+      totalKeywords: row.total_keywords,
+      avgAioPercent: Math.round(row.avg_aio_percent),
       severityDistribution,
       impactStats,
       intentStats,
     };
   } catch (error) {
-    console.error('Error in getStats:', error);
+    console.error('[Stats] Error fetching stats:', error);
     return null;
   }
-}
-
-/**
- * Calculate severity distribution from scans
- */
-function calculateSeverityDistribution(scans: any[]): SeverityDistribution {
-  const tiers = {
-    critical: { count: 0, label: 'Critical', color: '#dc2626' },  // red-600
-    high: { count: 0, label: 'High Risk', color: '#f97316' },     // orange-500
-    medium: { count: 0, label: 'Medium', color: '#eab308' },      // yellow-500
-    low: { count: 0, label: 'Low Risk', color: '#22c55e' },       // green-500
-  };
-
-  for (const scan of scans) {
-    if (!scan.keywords_total || scan.keywords_total === 0) continue;
-
-    const percent = (scan.keywords_with_aio / scan.keywords_total) * 100;
-
-    if (percent > 75) {
-      tiers.critical.count++;
-    } else if (percent > 50) {
-      tiers.high.count++;
-    } else if (percent > 25) {
-      tiers.medium.count++;
-    } else {
-      tiers.low.count++;
-    }
-  }
-
-  const totalDomains = scans.length;
-
-  return {
-    tiers: [
-      { name: 'critical', ...tiers.critical, percent: totalDomains > 0 ? Math.round((tiers.critical.count / totalDomains) * 100) : 0 },
-      { name: 'high', ...tiers.high, percent: totalDomains > 0 ? Math.round((tiers.high.count / totalDomains) * 100) : 0 },
-      { name: 'medium', ...tiers.medium, percent: totalDomains > 0 ? Math.round((tiers.medium.count / totalDomains) * 100) : 0 },
-      { name: 'low', ...tiers.low, percent: totalDomains > 0 ? Math.round((tiers.low.count / totalDomains) * 100) : 0 },
-    ],
-    totalDomains,
-  };
-}
-
-/**
- * Calculate impact stats and intent stats from raw_response JSONB
- */
-function calculateDetailedStats(scans: any[]): { impactStats: ImpactStats; intentStats: IntentStats } {
-  let totalSearchVolume = 0;
-  let atRiskSearchVolume = 0;
-
-  // Intent tracking
-  const intentData: Record<string, { count: number; affected: number }> = {
-    informational: { count: 0, affected: 0 },
-    commercial: { count: 0, affected: 0 },
-    transactional: { count: 0, affected: 0 },
-    navigational: { count: 0, affected: 0 },
-  };
-
-  let totalKeywordsProcessed = 0;
-
-  for (const scan of scans) {
-    if (!scan.raw_response) continue;
-
-    try {
-      const rawData = scan.raw_response;
-      const tasks = rawData.tasks || [];
-      const items = tasks[0]?.result?.[0]?.items || [];
-
-      for (const item of items) {
-        const keywordData = item.keyword_data || {};
-        const serpInfo = keywordData.serp_info || {};
-        const keywordInfo = keywordData.keyword_info || {};
-        const searchIntentInfo = keywordData.search_intent_info || {};
-
-        // Search volume
-        const searchVolume = keywordInfo.search_volume || 0;
-        totalSearchVolume += searchVolume;
-
-        // Check if has AI Overview
-        const serpItemTypes = serpInfo.serp_item_types || [];
-        const hasAiOverview = serpItemTypes.includes('ai_overview');
-
-        if (hasAiOverview) {
-          atRiskSearchVolume += searchVolume;
-        }
-
-        // Intent classification
-        const mainIntent = searchIntentInfo.main_intent || 'unknown';
-        if (intentData[mainIntent]) {
-          intentData[mainIntent].count++;
-          if (hasAiOverview) {
-            intentData[mainIntent].affected++;
-          }
-        }
-
-        totalKeywordsProcessed++;
-      }
-    } catch (e) {
-      // Skip malformed raw_response
-      continue;
-    }
-  }
-
-  // Build impact stats
-  const impactStats: ImpactStats = {
-    totalSearchVolume,
-    atRiskSearchVolume,
-    atRiskPercent: totalSearchVolume > 0 ? Math.round((atRiskSearchVolume / totalSearchVolume) * 100) : 0,
-  };
-
-  // Build intent stats with labels
-  const intentLabels: Record<string, string> = {
-    informational: 'Informational',
-    commercial: 'Commercial',
-    transactional: 'Transactional',
-    navigational: 'Navigational',
-  };
-
-  const intents: IntentStat[] = Object.entries(intentData)
-    .filter(([_, data]) => data.count > 0)
-    .map(([intent, data]) => ({
-      intent,
-      label: intentLabels[intent] || intent,
-      keywordsCount: data.count,
-      affectedCount: data.affected,
-      affectedPercent: data.count > 0 ? Math.round((data.affected / data.count) * 100) : 0,
-    }))
-    .sort((a, b) => b.affectedPercent - a.affectedPercent); // Sort by most affected first
-
-  const intentStats: IntentStats = {
-    intents,
-    totalKeywords: totalKeywordsProcessed,
-  };
-
-  return { impactStats, intentStats };
 }

@@ -3,13 +3,7 @@ import type { Metadata } from 'next';
 import { KeywordsTable } from '@/components/results/keywords-table';
 import { ShareButtons } from '@/components/results/share-buttons';
 import { Footer } from '@/components/landing/footer';
-import {
-  AlertTriangle,
-  Sparkles,
-  CheckCircle,
-  ArrowLeft,
-  ExternalLink,
-} from 'lucide-react';
+import { ArrowLeft, ExternalLink } from 'lucide-react';
 
 interface Props {
   params: Promise<{ domain: string }>;
@@ -82,10 +76,8 @@ export default async function ResultsPage({ params }: Props) {
     );
   }
 
-  const stolenCount = data.keywords.filter((k: any) => k.aiOverviewStatus === 'stolen').length;
-  const referencedCount = data.keywords.filter((k: any) => k.aiOverviewStatus === 'referenced').length;
-  const safeCount = data.keywords.filter((k: any) => k.aiOverviewStatus === 'safe').length;
-  const impactPercentage = Math.round((data.stats.withAIO / data.stats.total) * 100);
+  const { total, withAio, withoutAio } = data.stats;
+  const impactPercentage = total > 0 ? Math.round((withAio / total) * 100) : 0;
 
   return (
     <main className="min-h-screen bg-white text-black">
@@ -124,9 +116,9 @@ export default async function ResultsPage({ params }: Props) {
             {/* Key Insight - The Main Number */}
             <div className="mb-2">
               <span className="text-5xl md:text-6xl lg:text-7xl font-black tracking-tighter">
-                <span className="text-[#FF4500]">{data.stats.withAIO}</span>
+                <span className="text-[#FF4500]">{withAio}</span>
                 <span className="text-black/20 mx-1 md:mx-2">/</span>
-                <span className="text-black">{data.stats.total}</span>
+                <span className="text-black">{total}</span>
               </span>
             </div>
 
@@ -148,47 +140,14 @@ export default async function ResultsPage({ params }: Props) {
           </div>
         </header>
 
-        {/* Stats Cards - Compact with icons */}
-        <section className="mb-6 md:mb-8 animate-fade-in-up animation-delay-200">
-          <div className="grid grid-cols-3 gap-2 md:gap-4">
-            {/* At Risk */}
-            <div className="border border-red-200 bg-red-50 p-3 md:p-5">
-              <div className="flex items-center gap-1.5 mb-1.5">
-                <AlertTriangle className="w-4 h-4 md:w-5 md:h-5 text-[#FF4500]" />
-                <span className="text-xs md:text-sm font-bold text-[#FF4500] uppercase">At Risk</span>
-              </div>
-              <div className="text-3xl md:text-4xl font-black text-[#FF4500]">{stolenCount}</div>
-              <div className="text-[10px] md:text-xs text-black/50 mt-1">AI steals your clicks</div>
-            </div>
-            {/* Cited */}
-            <div className="border border-orange-200 bg-orange-50 p-3 md:p-5">
-              <div className="flex items-center gap-1.5 mb-1.5">
-                <Sparkles className="w-4 h-4 md:w-5 md:h-5 text-orange-500" />
-                <span className="text-xs md:text-sm font-bold text-orange-500 uppercase">Cited</span>
-              </div>
-              <div className="text-3xl md:text-4xl font-black text-orange-500">{referencedCount}</div>
-              <div className="text-[10px] md:text-xs text-black/50 mt-1">You appear in AI</div>
-            </div>
-            {/* Safe */}
-            <div className="border border-green-200 bg-green-50 p-3 md:p-5">
-              <div className="flex items-center gap-1.5 mb-1.5">
-                <CheckCircle className="w-4 h-4 md:w-5 md:h-5 text-green-600" />
-                <span className="text-xs md:text-sm font-bold text-green-600 uppercase">Safe</span>
-              </div>
-              <div className="text-3xl md:text-4xl font-black text-green-600">{safeCount}</div>
-              <div className="text-[10px] md:text-xs text-black/50 mt-1">No AI Overview</div>
-            </div>
-          </div>
-        </section>
-
-        {/* Keywords Section */}
-        <section className="mb-8 animate-fade-in-up animation-delay-300">
+        {/* Keywords Section - Direct, no redundant cards */}
+        <section className="mb-8 animate-fade-in-up animation-delay-200">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
             <h2 className="text-lg md:text-xl font-black text-black tracking-tight">
               Keyword Analysis
             </h2>
             <span className="text-xs text-black/40 font-mono">
-              {data.keywords.length} keywords
+              Top {data.keywords.length} keywords by risk score
             </span>
           </div>
           <KeywordsTable keywords={data.keywords} />
@@ -199,8 +158,8 @@ export default async function ResultsPage({ params }: Props) {
           <ShareButtons
             domain={domain}
             impactPercentage={impactPercentage}
-            totalKeywords={data.stats.total}
-            affectedKeywords={data.stats.withAIO}
+            totalKeywords={total}
+            affectedKeywords={withAio}
           />
         </section>
 
@@ -211,7 +170,7 @@ export default async function ResultsPage({ params }: Props) {
               Want to get cited in AI Overviews?
             </h3>
             <p className="text-sm md:text-base text-black/50 mb-6 max-w-md mx-auto">
-              Turn "At Risk" keywords into "Cited" and recover your traffic.
+              Stop losing traffic to AI. Get your content cited instead.
             </p>
             <a
               href="https://outrank.so"

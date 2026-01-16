@@ -1,5 +1,5 @@
 import { ImageResponse } from 'next/og';
-import { getCachedScan } from '@/lib/supabase';
+import { getDomain } from '@/lib/db';
 
 export const runtime = 'edge';
 
@@ -9,11 +9,11 @@ export async function GET(
 ) {
   const { domain } = await params;
 
-  // Fetch scan data
-  const scan = await getCachedScan(domain);
+  // Fetch domain data
+  const domainData = await getDomain(domain);
 
-  const withAIO = scan?.keywords_with_aio || 0;
-  const total = scan?.keywords_total || 0;
+  const withAIO = domainData?.keywords_with_aio || 0;
+  const total = domainData?.keywords_analyzed || 0;
   const percentage = total > 0 ? Math.round((withAIO / total) * 100) : 0;
 
   return new ImageResponse(

@@ -42,7 +42,7 @@ export function InsightsSection({ stats }: InsightsSectionProps) {
   const hasIntentData = intentStats && intentStats.intents.length > 0;
 
   // Split intents evenly: top 2 most affected on left, rest on right
-  // Intents are already sorted by affectedPercent descending
+  // Intents are already sorted by aioPercent descending
   const allIntents = intentStats?.intents || [];
   const highRiskIntents = allIntents.slice(0, 2); // Top 2 most affected
   const saferIntents = allIntents.slice(2);       // Rest (lower affected)
@@ -56,9 +56,9 @@ export function InsightsSection({ stats }: InsightsSectionProps) {
           </h2>
           <p className="text-lg text-black/60 max-w-2xl mx-auto">
             {hasIntentData ? (
-              <>Real data from {intentStats.totalKeywords.toLocaleString()} keywords across {stats.totalDomains} domains</>
+              <>Real data from {intentStats.totalKeywords.toLocaleString()} keyword rankings across {stats.totalDomains} domains</>
             ) : (
-              <>Patterns discovered from analyzing keywords across domains</>
+              <>Patterns discovered from analyzing keyword rankings across domains</>
             )}
           </p>
         </div>
@@ -77,7 +77,7 @@ export function InsightsSection({ stats }: InsightsSectionProps) {
               {hasIntentData && highRiskIntents.length > 0 ? (
                 highRiskIntents.map((intent) => {
                   const info = intentInfo[intent.intent] || { examples: '', recommendation: '' };
-                  const colors = getIntentColor(intent.affectedPercent, true);
+                  const colors = getIntentColor(intent.aioPercent, true);
                   const borderColor = colors.split(' ')[0];
                   const textColor = colors.split(' ')[1];
 
@@ -88,7 +88,7 @@ export function InsightsSection({ stats }: InsightsSectionProps) {
                           {intent.label}
                         </div>
                         <div className={`text-2xl font-black ${textColor}`}>
-                          {intent.affectedPercent}%
+                          {intent.aioPercent}%
                         </div>
                       </div>
                       <div className="text-xs text-black/40 mb-2 font-mono">
@@ -141,7 +141,7 @@ export function InsightsSection({ stats }: InsightsSectionProps) {
               {hasIntentData && saferIntents.length > 0 ? (
                 saferIntents.map((intent) => {
                   const info = intentInfo[intent.intent] || { examples: '', recommendation: '' };
-                  const colors = getIntentColor(intent.affectedPercent, false);
+                  const colors = getIntentColor(intent.aioPercent, false);
                   const borderColor = colors.split(' ')[0];
                   const textColor = colors.split(' ')[1];
 
@@ -152,7 +152,7 @@ export function InsightsSection({ stats }: InsightsSectionProps) {
                           {intent.label}
                         </div>
                         <div className={`text-2xl font-black ${textColor}`}>
-                          {intent.affectedPercent}%
+                          {intent.aioPercent}%
                         </div>
                       </div>
                       <div className="text-xs text-black/40 mb-2 font-mono">

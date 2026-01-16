@@ -14,7 +14,7 @@ export const revalidate = 60; // Cache for 1 minute - quick updates when new dom
 const defaultStats: Stats = {
   totalDomains: 0,
   totalKeywords: 0,
-  avgAffectedPercent: 0,
+  avgAioPercent: 0,
   severityDistribution: {
     tiers: [
       { name: 'critical', label: 'Critical', count: 0, percent: 0, color: '#dc2626' },
@@ -26,8 +26,8 @@ const defaultStats: Stats = {
   },
   impactStats: {
     totalSearchVolume: 0,
-    atRiskSearchVolume: 0,
-    atRiskPercent: 0,
+    aioSearchVolume: 0,
+    aioPercent: 0,
   },
   intentStats: {
     intents: [],

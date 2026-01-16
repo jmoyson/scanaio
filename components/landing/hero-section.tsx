@@ -121,7 +121,7 @@ export function HeroSection({ stats, isLoading = false }: HeroSectionProps) {
               {isLoading ? (
                 <span className="inline-block w-16 h-8 bg-black/10 animate-pulse rounded" />
               ) : (
-                <>{stats?.avgAffectedPercent || 0}%</>
+                <>{stats?.avgAioPercent || 0}%</>
               )}
             </div>
             <div className="text-xs md:text-sm text-black/50 uppercase tracking-wider font-bold">
@@ -149,7 +149,7 @@ export function HeroSection({ stats, isLoading = false }: HeroSectionProps) {
               )}
             </div>
             <div className="text-xs md:text-sm text-black/50 uppercase tracking-wider font-bold">
-              Keywords Analyzed
+              Rankings Analyzed
             </div>
           </div>
         </div>

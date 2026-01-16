@@ -16,7 +16,7 @@ function formatNumber(num: number): string {
 }
 
 export function ImpactBanner({ impactStats, totalDomains }: ImpactBannerProps) {
-  const { totalSearchVolume, atRiskPercent } = impactStats;
+  const { totalSearchVolume, aioPercent } = impactStats;
 
   if (totalSearchVolume === 0) {
     return null;
@@ -37,9 +37,9 @@ export function ImpactBanner({ impactStats, totalDomains }: ImpactBannerProps) {
           </span>
           .{' '}
           <span className="font-black text-[#FF4500]">
-            {atRiskPercent}%
+            {aioPercent}%
           </span>
-          {' '}of that traffic is at risk.
+          {' '}of that traffic is affected by AI Overviews.
         </p>
 
         {/* CTA line */}

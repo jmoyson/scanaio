@@ -7,8 +7,7 @@ import {
   ArrowUp,
   ArrowDown,
   AlertTriangle,
-  Sparkles,
-  CheckCircle,
+  ShieldCheck,
   Search,
   TrendingUp,
   Hash,
@@ -18,9 +17,16 @@ interface KeywordsTableProps {
   keywords: Keyword[];
 }
 
-type SortField = 'keyword' | 'volume' | 'position' | 'status';
+type SortField = 'keyword' | 'volume' | 'position' | 'intent' | 'status';
 type SortDir = 'asc' | 'desc';
-type Filter = 'all' | 'at-risk' | 'cited' | 'safe';
+type Filter = 'all' | 'aio' | 'safe';
+
+const intentConfig = {
+  informational: { label: 'Informational', color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-200' },
+  commercial: { label: 'Commercial', color: 'text-purple-600', bg: 'bg-purple-50', border: 'border-purple-200' },
+  transactional: { label: 'Transactional', color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-200' },
+  navigational: { label: 'Navigational', color: 'text-gray-600', bg: 'bg-gray-100', border: 'border-gray-300' },
+};
 
 export function KeywordsTable({ keywords }: KeywordsTableProps) {
   // Default: sort by volume descending (highest traffic first)
@@ -40,9 +46,8 @@ export function KeywordsTable({ keywords }: KeywordsTableProps) {
 
   const filtered = keywords.filter(kw => {
     if (filter === 'all') return true;
-    if (filter === 'at-risk') return kw.aiOverviewStatus === 'stolen';
-    if (filter === 'cited') return kw.aiOverviewStatus === 'referenced';
-    if (filter === 'safe') return kw.aiOverviewStatus === 'safe';
+    if (filter === 'aio') return kw.hasAiOverview;
+    if (filter === 'safe') return !kw.hasAiOverview;
     return true;
   });
 
@@ -54,9 +59,12 @@ export function KeywordsTable({ keywords }: KeywordsTableProps) {
       cmp = a.searchVolume - b.searchVolume;
     } else if (sortField === 'position') {
       cmp = a.position - b.position;
+    } else if (sortField === 'intent') {
+      const order = { informational: 0, commercial: 1, transactional: 2, navigational: 3 };
+      cmp = order[a.intent] - order[b.intent];
     } else if (sortField === 'status') {
-      const order = { stolen: 0, referenced: 1, safe: 2 };
-      cmp = order[a.aiOverviewStatus] - order[b.aiOverviewStatus];
+      // AIO first
+      cmp = (a.hasAiOverview ? 0 : 1) - (b.hasAiOverview ? 0 : 1);
     }
     return sortDir === 'asc' ? cmp : -cmp;
   });
@@ -68,36 +76,27 @@ export function KeywordsTable({ keywords }: KeywordsTableProps) {
       : <ArrowDown className="w-3 h-3 ml-1 text-[#FF4500]" />;
   };
 
-  const statusConfig = {
-    stolen: {
-      label: 'At Risk',
-      color: 'text-[#FF4500]',
-      bg: 'bg-red-50',
-      border: 'border-red-200',
-      icon: AlertTriangle,
-      dotColor: 'bg-[#FF4500]'
-    },
-    referenced: {
-      label: 'Cited',
-      color: 'text-orange-500',
-      bg: 'bg-orange-50',
-      border: 'border-orange-200',
-      icon: Sparkles,
-      dotColor: 'bg-orange-500'
-    },
-    safe: {
-      label: 'Safe',
-      color: 'text-green-600',
-      bg: 'bg-green-50',
-      border: 'border-green-200',
-      icon: CheckCircle,
-      dotColor: 'bg-green-600'
-    },
+  // Status config with strong warning icons
+  const getStatusConfig = (hasAio: boolean) => hasAio ? {
+    label: 'AIO',
+    shortLabel: 'AIO',
+    color: 'text-[#FF4500]',
+    bg: 'bg-red-50',
+    border: 'border-[#FF4500]',
+    icon: AlertTriangle,
+    dotColor: 'bg-[#FF4500]'
+  } : {
+    label: 'Safe',
+    shortLabel: 'Safe',
+    color: 'text-green-600',
+    bg: 'bg-green-50',
+    border: 'border-green-500',
+    icon: ShieldCheck,
+    dotColor: 'bg-green-600'
   };
 
-  const atRiskCount = keywords.filter(k => k.aiOverviewStatus === 'stolen').length;
-  const citedCount = keywords.filter(k => k.aiOverviewStatus === 'referenced').length;
-  const safeCount = keywords.filter(k => k.aiOverviewStatus === 'safe').length;
+  const aioCount = keywords.filter(k => k.hasAiOverview).length;
+  const safeCount = keywords.filter(k => !k.hasAiOverview).length;
 
   return (
     <div>
@@ -114,33 +113,25 @@ export function KeywordsTable({ keywords }: KeywordsTableProps) {
           All ({keywords.length})
         </button>
         <button
-          onClick={() => setFilter('at-risk')}
-          className={`px-3 md:px-4 py-2 text-xs font-bold border transition-all button-press ${
-            filter === 'at-risk'
+          onClick={() => setFilter('aio')}
+          className={`px-3 md:px-4 py-2 text-xs font-bold border transition-all button-press flex items-center gap-1.5 ${
+            filter === 'aio'
               ? 'bg-[#FF4500] text-white border-[#FF4500]'
               : 'bg-white text-black/60 border-black/10 hover:border-[#FF4500]/50'
           }`}
         >
-          At Risk ({atRiskCount})
-        </button>
-        <button
-          onClick={() => setFilter('cited')}
-          className={`px-3 md:px-4 py-2 text-xs font-bold border transition-all button-press ${
-            filter === 'cited'
-              ? 'bg-orange-500 text-white border-orange-500'
-              : 'bg-white text-black/60 border-black/10 hover:border-orange-300'
-          }`}
-        >
-          Cited ({citedCount})
+          <AlertTriangle className="w-3.5 h-3.5" />
+          AIO ({aioCount})
         </button>
         <button
           onClick={() => setFilter('safe')}
-          className={`px-3 md:px-4 py-2 text-xs font-bold border transition-all button-press ${
+          className={`px-3 md:px-4 py-2 text-xs font-bold border transition-all button-press flex items-center gap-1.5 ${
             filter === 'safe'
               ? 'bg-green-600 text-white border-green-600'
               : 'bg-white text-black/60 border-black/10 hover:border-green-300'
           }`}
         >
+          <ShieldCheck className="w-3.5 h-3.5" />
           Safe ({safeCount})
         </button>
       </div>
@@ -149,10 +140,10 @@ export function KeywordsTable({ keywords }: KeywordsTableProps) {
       <div className="hidden md:block border-2 border-black/10 bg-white overflow-hidden">
         {/* Header */}
         <div className="bg-black text-white">
-          <div className="grid grid-cols-12 gap-4 px-5 py-4">
+          <div className="grid grid-cols-12 gap-3 px-5 py-4">
             <button
               onClick={() => handleSort('keyword')}
-              className="col-span-5 text-left text-xs uppercase tracking-wider font-bold flex items-center hover:text-[#FF4500] transition-colors"
+              className="col-span-4 text-left text-xs uppercase tracking-wider font-bold flex items-center hover:text-[#FF4500] transition-colors"
             >
               <Search className="w-3 h-3 mr-2 opacity-50" />
               Keyword <SortIcon field="keyword" />
@@ -166,10 +157,16 @@ export function KeywordsTable({ keywords }: KeywordsTableProps) {
             </button>
             <button
               onClick={() => handleSort('position')}
+              className="col-span-1 text-left text-xs uppercase tracking-wider font-bold flex items-center hover:text-[#FF4500] transition-colors"
+            >
+              <Hash className="w-3 h-3 mr-1 opacity-50" />
+              Rank <SortIcon field="position" />
+            </button>
+            <button
+              onClick={() => handleSort('intent')}
               className="col-span-2 text-left text-xs uppercase tracking-wider font-bold flex items-center hover:text-[#FF4500] transition-colors"
             >
-              <Hash className="w-3 h-3 mr-2 opacity-50" />
-              Rank <SortIcon field="position" />
+              Intent <SortIcon field="intent" />
             </button>
             <button
               onClick={() => handleSort('status')}
@@ -183,28 +180,34 @@ export function KeywordsTable({ keywords }: KeywordsTableProps) {
         {/* Body */}
         <div className="divide-y divide-black/5">
           {sorted.map((kw, index) => {
-            const config = statusConfig[kw.aiOverviewStatus];
+            const config = getStatusConfig(kw.hasAiOverview);
+            const intent = intentConfig[kw.intent];
             const StatusIcon = config.icon;
             return (
               <div
                 key={index}
-                className={`grid grid-cols-12 gap-4 px-5 py-4 transition-all hover:bg-black/[0.03] group ${
-                  kw.aiOverviewStatus === 'stolen' ? 'bg-[#FF4500]/[0.03]' : ''
+                className={`grid grid-cols-12 gap-3 px-5 py-4 transition-all hover:bg-black/[0.03] group ${
+                  kw.hasAiOverview ? 'bg-[#FF4500]/[0.03]' : ''
                 }`}
               >
-                <div className="col-span-5 text-sm font-medium text-black flex items-center gap-3">
+                <div className="col-span-4 text-sm font-medium text-black flex items-center gap-3">
                   <span className={`w-2 h-2 rounded-full ${config.dotColor} flex-shrink-0 group-hover:scale-125 transition-transform`} />
                   <span className="truncate">{kw.keyword}</span>
                 </div>
                 <div className="col-span-2 text-sm text-black/70 font-mono tabular-nums flex items-center">
                   {kw.searchVolume.toLocaleString()}
                 </div>
-                <div className="col-span-2 text-sm text-black/70 font-mono tabular-nums flex items-center">
+                <div className="col-span-1 text-sm text-black/70 font-mono tabular-nums flex items-center">
                   <span className="text-black/30">#</span>{kw.position}
                 </div>
+                <div className="col-span-2 flex items-center">
+                  <span className={`inline-flex px-2 py-1 text-[10px] font-bold ${intent.bg} ${intent.color} border ${intent.border}`}>
+                    {intent.label}
+                  </span>
+                </div>
                 <div className="col-span-3">
-                  <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold ${config.bg} ${config.color} border ${config.border}`}>
-                    <StatusIcon className="w-3 h-3" />
+                  <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-black ${config.bg} ${config.color} border ${config.border}`}>
+                    <StatusIcon className="w-3.5 h-3.5" />
                     {config.label}
                   </span>
                 </div>
@@ -247,7 +250,8 @@ export function KeywordsTable({ keywords }: KeywordsTableProps) {
 
         {/* Mobile Cards */}
         {sorted.map((kw, index) => {
-          const config = statusConfig[kw.aiOverviewStatus];
+          const config = getStatusConfig(kw.hasAiOverview);
+          const intent = intentConfig[kw.intent];
           const StatusIcon = config.icon;
           return (
             <div
@@ -258,12 +262,12 @@ export function KeywordsTable({ keywords }: KeywordsTableProps) {
                 <span className="text-sm font-bold text-black flex-1 leading-tight">
                   {kw.keyword}
                 </span>
-                <span className={`inline-flex items-center gap-1 px-2 py-1 text-[10px] font-bold ${config.bg} ${config.color} border ${config.border} whitespace-nowrap`}>
+                <span className={`inline-flex items-center gap-1 px-2 py-1 text-[10px] font-black ${config.bg} ${config.color} border ${config.border} whitespace-nowrap`}>
                   <StatusIcon className="w-3 h-3" />
-                  {config.label}
+                  {config.shortLabel}
                 </span>
               </div>
-              <div className="flex items-center gap-4 text-xs text-black/60">
+              <div className="flex items-center flex-wrap gap-3 text-xs text-black/60">
                 <div className="flex items-center gap-1.5">
                   <TrendingUp className="w-3 h-3 text-black/40" />
                   <span className="font-mono font-bold text-black">{kw.searchVolume.toLocaleString()}</span>
@@ -274,6 +278,9 @@ export function KeywordsTable({ keywords }: KeywordsTableProps) {
                   <span className="font-mono font-bold text-black">{kw.position}</span>
                   <span className="text-black/40">rank</span>
                 </div>
+                <span className={`inline-flex px-2 py-0.5 text-[10px] font-bold ${intent.bg} ${intent.color} border ${intent.border}`}>
+                  {intent.label}
+                </span>
               </div>
             </div>
           );
