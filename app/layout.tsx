@@ -11,20 +11,11 @@ export const metadata: Metadata = {
     url: "https://scanaio.com",
     type: "website",
     siteName: "ScanAIO",
-    images: [
-      {
-        url: "https://scanaio.com/api/og",
-        width: 1200,
-        height: 630,
-        alt: "ScanAIO - See which keywords trigger Google AI Overviews",
-      },
-    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "ScanAIO - AI Overview Scanner",
     description: "See which of your ranking keywords trigger Google's AI Overviews.",
-    images: ["https://scanaio.com/api/og"],
   },
   metadataBase: new URL("https://scanaio.com"),
 };

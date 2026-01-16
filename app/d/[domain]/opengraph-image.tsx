@@ -3,16 +3,25 @@ import { getDomain } from '@/lib/db';
 
 export const runtime = 'edge';
 
-export async function GET(
-  request: Request,
-  { params }: { params: Promise<{ domain: string }> }
-) {
+export const alt = 'AI Overview Impact Report';
+
+export const size = {
+  width: 1200,
+  height: 630,
+};
+
+export const contentType = 'image/png';
+
+export default async function Image({
+  params,
+}: {
+  params: Promise<{ domain: string }>;
+}) {
   const { domain } = await params;
 
   // Fetch domain data
   const domainData = await getDomain(domain);
 
-  // If domain not found, show a "not scanned yet" state
   const isScanned = domainData !== null;
   const withAIO = domainData?.keywords_with_aio || 0;
   const total = domainData?.keywords_analyzed || 0;
@@ -27,17 +36,13 @@ export async function GET(
           display: 'flex',
           flexDirection: 'column',
           background: '#FFFFFF',
-          position: 'relative',
         }}
       >
         {/* Top accent line */}
         <div
           style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            height: 6,
+            width: '100%',
+            height: 8,
             background: '#FF4500',
           }}
         />
@@ -50,18 +55,18 @@ export async function GET(
             alignItems: 'center',
             justifyContent: 'center',
             flex: 1,
-            padding: '60px 80px',
+            padding: '40px 80px',
           }}
         >
           {/* Label */}
           <div
             style={{
-              fontSize: 20,
+              fontSize: 18,
               fontWeight: 700,
               color: '#9CA3AF',
               textTransform: 'uppercase',
-              letterSpacing: '0.2em',
-              marginBottom: 24,
+              letterSpacing: '0.15em',
+              marginBottom: 20,
             }}
           >
             AI Overview Impact Report
@@ -70,10 +75,10 @@ export async function GET(
           {/* Domain */}
           <div
             style={{
-              fontSize: 56,
+              fontSize: 52,
               fontWeight: 900,
               color: '#111827',
-              marginBottom: 48,
+              marginBottom: 40,
               letterSpacing: '-0.02em',
             }}
           >
@@ -86,16 +91,37 @@ export async function GET(
               style={{
                 display: 'flex',
                 alignItems: 'baseline',
-                marginBottom: 24,
+                marginBottom: 20,
               }}
             >
-              <span style={{ fontSize: 140, fontWeight: 900, color: '#FF4500', letterSpacing: '-0.04em' }}>
+              <span
+                style={{
+                  fontSize: 120,
+                  fontWeight: 900,
+                  color: '#FF4500',
+                  letterSpacing: '-0.04em',
+                }}
+              >
                 {withAIO}
               </span>
-              <span style={{ fontSize: 80, fontWeight: 300, color: '#D1D5DB', margin: '0 16px' }}>
+              <span
+                style={{
+                  fontSize: 60,
+                  fontWeight: 300,
+                  color: '#D1D5DB',
+                  margin: '0 16px',
+                }}
+              >
                 /
               </span>
-              <span style={{ fontSize: 140, fontWeight: 900, color: '#111827', letterSpacing: '-0.04em' }}>
+              <span
+                style={{
+                  fontSize: 120,
+                  fontWeight: 900,
+                  color: '#111827',
+                  letterSpacing: '-0.04em',
+                }}
+              >
                 {total}
               </span>
             </div>
@@ -105,7 +131,7 @@ export async function GET(
                 fontSize: 48,
                 fontWeight: 700,
                 color: '#9CA3AF',
-                marginBottom: 24,
+                marginBottom: 20,
               }}
             >
               Not scanned yet
@@ -115,23 +141,26 @@ export async function GET(
           {/* Description */}
           <div
             style={{
-              fontSize: 32,
+              fontSize: 28,
               color: '#6B7280',
               fontWeight: 400,
             }}
           >
-            {isScanned ? 'keywords affected by AI Overviews' : 'Check this domain for AI Overview impact'}
+            {isScanned
+              ? 'keywords affected by AI Overviews'
+              : 'Check this domain for AI Overview impact'}
           </div>
 
           {/* Progress bar */}
           {isScanned && (
             <div
               style={{
-                width: '70%',
-                height: 12,
+                width: '60%',
+                height: 14,
                 background: '#F3F4F6',
-                marginTop: 48,
+                marginTop: 40,
                 display: 'flex',
+                borderRadius: 7,
                 overflow: 'hidden',
               }}
             >
@@ -153,18 +182,20 @@ export async function GET(
             justifyContent: 'space-between',
             alignItems: 'center',
             padding: '24px 80px',
-            borderTop: '1px solid #F3F4F6',
+            borderTop: '1px solid #E5E7EB',
+            background: '#FAFAFA',
           }}
         >
           <div
             style={{
-              fontSize: 24,
+              display: 'flex',
+              fontSize: 26,
               fontWeight: 900,
-              color: '#111827',
               letterSpacing: '-0.02em',
             }}
           >
-            ScanAIO
+            <span style={{ color: '#111827' }}>Scan</span>
+            <span style={{ color: '#FF4500' }}>AIO</span>
           </div>
           <div
             style={{
@@ -178,8 +209,7 @@ export async function GET(
       </div>
     ),
     {
-      width: 1200,
-      height: 630,
+      ...size,
     }
   );
 }

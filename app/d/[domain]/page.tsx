@@ -25,7 +25,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     openGraph: {
       title: `${domain} - AI Overview Analysis`,
       description: `Check which keywords trigger AI Overviews for ${domain}`,
-      images: [`/api/og/${domain}`],
     },
   };
 }
