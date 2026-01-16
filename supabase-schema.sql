@@ -19,11 +19,13 @@ CREATE TABLE IF NOT EXISTS scans (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   domain TEXT NOT NULL,
   raw_response JSONB NOT NULL,
+  ip_address TEXT, -- For rate limiting (nullable for historical scans)
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX IF NOT EXISTS idx_scans_domain ON scans(domain);
 CREATE INDEX IF NOT EXISTS idx_scans_created_at ON scans(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_scans_ip_created ON scans(ip_address, created_at DESC);
 
 -- ============================================================================
 -- TABLE 2: domains (computed from scans)

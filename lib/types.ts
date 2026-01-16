@@ -31,6 +31,7 @@ export interface ScanRow {
   id: string;
   domain: string;
   raw_response: unknown;
+  ip_address: string | null; // For rate limiting (nullable for historical scans)
   created_at: string;
 }
 

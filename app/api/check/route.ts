@@ -12,6 +12,7 @@ import { NextResponse } from "next/server";
 import type { CheckRequest, CheckResponse, APIError, Keyword } from "@/lib/types";
 import { fetchRankedKeywords } from "@/lib/dataforseo-client";
 import { parseDataForSEOResponse } from "@/lib/keyword-parser";
+import { isValidDomain, cleanDomain } from "@/lib/domain-utils";
 import {
   insertScan,
   getCachedDomain,
@@ -19,6 +20,7 @@ import {
   getKeywordsByDomain,
   replaceKeywords,
   recalculateGlobalStats,
+  getScanCountByIP,
 } from "@/lib/db";
 
 export const runtime = "edge";
@@ -28,13 +30,22 @@ export const revalidate = 86400;
 const pendingRequests = new Map<string, Promise<CheckResponse>>();
 
 // Rate limiting (10 domains per IP per 24h)
+// Hybrid approach: in-memory for speed + database for persistence
+// - In-memory check is fast and catches repeated requests
+// - Database check runs only if in-memory passes (prevents abuse after redeploy)
 const rateLimitMap = new Map<string, number[]>();
 const RATE_LIMIT_WINDOW_MS = 24 * 60 * 60 * 1000;
 const RATE_LIMIT_MAX = 10;
 
 const isDev = process.env.NODE_ENV === 'development';
 
-function checkRateLimit(ip: string): { limited: boolean; resetInHours?: number } {
+/**
+ * Check in-memory rate limit (fast path)
+ * Returns: { limited, resetInHours, shouldCheckDB }
+ * - If limited: user exceeded in-memory limit
+ * - If shouldCheckDB: in-memory passed but should verify against database
+ */
+function checkInMemoryRateLimit(ip: string): { limited: boolean; resetInHours?: number; inMemoryCount: number } {
   const now = Date.now();
   const requests = rateLimitMap.get(ip) || [];
   const recent = requests.filter(ts => now - ts < RATE_LIMIT_WINDOW_MS);
@@ -42,15 +53,20 @@ function checkRateLimit(ip: string): { limited: boolean; resetInHours?: number }
   if (recent.length >= RATE_LIMIT_MAX) {
     const oldest = Math.min(...recent);
     const resetIn = RATE_LIMIT_WINDOW_MS - (now - oldest);
-    return { limited: true, resetInHours: Math.ceil(resetIn / 3600000) };
+    return { limited: true, resetInHours: Math.ceil(resetIn / 3600000), inMemoryCount: recent.length };
   }
 
-  rateLimitMap.set(ip, [...recent, now]);
-  return { limited: false };
+  return { limited: false, inMemoryCount: recent.length };
 }
 
-function isValidDomain(domain: string): boolean {
-  return /^[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9]\.[a-zA-Z]{2,}$/.test(domain);
+/**
+ * Record a request in the in-memory rate limit
+ */
+function recordInMemoryRequest(ip: string): void {
+  const now = Date.now();
+  const requests = rateLimitMap.get(ip) || [];
+  const recent = requests.filter(ts => now - ts < RATE_LIMIT_WINDOW_MS);
+  rateLimitMap.set(ip, [...recent, now]);
 }
 
 export async function POST(request: Request) {
@@ -58,34 +74,65 @@ export async function POST(request: Request) {
     // Get IP for rate limiting
     const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
 
-    // Check rate limit
-    const rateLimit = checkRateLimit(ip);
-    if (rateLimit.limited) {
+    // Check rate limit (hybrid: in-memory first, then database if needed)
+    const inMemoryCheck = checkInMemoryRateLimit(ip);
+
+    if (inMemoryCheck.limited) {
+      const retryAfterSeconds = (inMemoryCheck.resetInHours || 1) * 3600;
       return NextResponse.json({
         error: 'Daily Limit Reached',
-        message: `You've scanned ${RATE_LIMIT_MAX} domains today. Try again in ${rateLimit.resetInHours} hour(s).`,
-      } as APIError, { status: 429 });
+        message: `You've scanned ${RATE_LIMIT_MAX} domains today. Try again in ${inMemoryCheck.resetInHours} hour(s).`,
+      } as APIError, {
+        status: 429,
+        headers: {
+          'Retry-After': String(retryAfterSeconds),
+        },
+      });
+    }
+
+    // If in-memory count is low, check database for persistent rate limiting
+    // This handles the case where server restarted but user already scanned today
+    if (inMemoryCheck.inMemoryCount === 0 && ip !== 'unknown') {
+      const dbCount = await getScanCountByIP(ip);
+      if (dbCount >= RATE_LIMIT_MAX) {
+        return NextResponse.json({
+          error: 'Daily Limit Reached',
+          message: `You've scanned ${RATE_LIMIT_MAX} domains today. Try again later.`,
+        } as APIError, {
+          status: 429,
+          headers: {
+            'Retry-After': '3600', // 1 hour default
+          },
+        });
+      }
+      // Pre-populate in-memory with DB count to avoid repeated DB checks
+      for (let i = 0; i < dbCount; i++) {
+        recordInMemoryRequest(ip);
+      }
     }
 
     // Parse and validate
     const body: CheckRequest = await request.json();
-    const { domain } = body;
+    const rawDomain = body.domain;
 
-    if (!domain || typeof domain !== 'string') {
+    if (!rawDomain || typeof rawDomain !== 'string') {
       return NextResponse.json({
         error: 'Invalid Request',
         message: 'Domain is required',
       } as APIError, { status: 400 });
     }
 
+    // Clean the domain (remove http://, www., paths, etc.)
+    const domain = cleanDomain(rawDomain);
+
     if (!isValidDomain(domain)) {
       return NextResponse.json({
         error: 'Invalid Request',
-        message: 'Invalid domain format',
+        message: 'Invalid domain format. Please enter a valid domain like example.com',
       } as APIError, { status: 400 });
     }
 
-    if (isDev) console.log('[API /check] Request:', domain);
+    if (isDev) console.log('[API /check] Request:', domain, rawDomain !== domain ? `(cleaned from: ${rawDomain})` : '');
 
     // =========================================================================
     // Cache Check
@@ -126,6 +173,10 @@ export async function POST(request: Request) {
     // =========================================================================
     if (isDev) console.log('[API /check] Cache MISS');
 
+    // Record the request in-memory before making the API call
+    // (This prevents duplicate API calls while the scan is in progress)
+    recordInMemoryRequest(ip);
+
     const scanPromise = (async (): Promise<CheckResponse> => {
       try {
         // 1. Fetch from DataForSEO
@@ -139,8 +190,8 @@ export async function POST(request: Request) {
           console.log('[API /check] Stats:', parsed.stats);
         }
 
-        // 3. Store scan (raw response archive)
-        const scan = await insertScan(domain, rawResponse);
+        // 3. Store scan (raw response archive + IP for rate limiting)
+        const scan = await insertScan(domain, rawResponse, ip !== 'unknown' ? ip : undefined);
 
         // 4. Update domain stats
         await upsertDomain(domain, scan.id, parsed.stats);

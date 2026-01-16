@@ -4,6 +4,8 @@ import { KeywordsTable } from '@/components/results/keywords-table';
 import { ShareButtons } from '@/components/results/share-buttons';
 import { Footer } from '@/components/landing/footer';
 import { ArrowLeft, ExternalLink } from 'lucide-react';
+import { getDomain } from '@/lib/db';
+import { isValidDomain } from '@/lib/domain-utils';
 
 interface Props {
   params: Promise<{ domain: string }>;
@@ -11,6 +13,10 @@ interface Props {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { domain } = await params;
+
+  if (!isValidDomain(domain)) {
+    return { title: 'Not Found' };
+  }
 
   return {
     title: `${domain} - AI Overview Analysis`,
@@ -26,6 +32,32 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function ResultsPage({ params }: Props) {
   const { domain } = await params;
 
+  // Validate domain format BEFORE any database/API calls
+  if (!isValidDomain(domain)) {
+    notFound();
+  }
+
+  // Check if domain exists in database (already scanned)
+  const existingDomain = await getDomain(domain);
+
+  // If not scanned yet, trigger a scan via API
+  if (!existingDomain) {
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/check`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ domain }),
+        cache: 'no-store',
+      }
+    );
+
+    if (!response.ok) {
+      notFound();
+    }
+  }
+
+  // Fetch fresh data
   const response = await fetch(
     `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/check`,
     {
@@ -76,7 +108,7 @@ export default async function ResultsPage({ params }: Props) {
     );
   }
 
-  const { total, withAio, withoutAio } = data.stats;
+  const { total, withAio } = data.stats;
   const impactPercentage = total > 0 ? Math.round((withAio / total) * 100) : 0;
 
   return (

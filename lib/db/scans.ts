@@ -12,13 +12,15 @@ import type { ScanRow } from '../types';
  */
 export async function insertScan(
   domain: string,
-  rawResponse: unknown
+  rawResponse: unknown,
+  ipAddress?: string
 ): Promise<ScanRow> {
   const { data, error } = await supabase
     .from('scans')
     .insert({
       domain,
       raw_response: rawResponse,
+      ip_address: ipAddress || null,
     })
     .select()
     .single();
@@ -29,6 +31,28 @@ export async function insertScan(
   }
 
   return data;
+}
+
+/**
+ * Count scans by IP address in the last 24 hours
+ * Used for persistent rate limiting
+ */
+export async function getScanCountByIP(ipAddress: string): Promise<number> {
+  const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+
+  const { count, error } = await supabase
+    .from('scans')
+    .select('*', { count: 'exact', head: true })
+    .eq('ip_address', ipAddress)
+    .gte('created_at', twentyFourHoursAgo);
+
+  if (error) {
+    console.error('[DB/scans] Count by IP error:', error);
+    // On error, return 0 to not block users
+    return 0;
+  }
+
+  return count || 0;
 }
 
 /**

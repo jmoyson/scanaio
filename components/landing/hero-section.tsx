@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Check } from 'lucide-react';
 import type { Stats } from '@/lib/stats';
+import { isValidDomain, cleanDomain } from '@/lib/domain-utils';
 
 interface HeroSectionProps {
   stats: Stats | null;
@@ -22,16 +23,17 @@ export function HeroSection({ stats, isLoading = false }: HeroSectionProps) {
     setLoading(true);
 
     try {
-      const cleanDomain = domain
-        .replace(/^https?:\/\//, '')
-        .replace(/^www\./, '')
-        .replace(/\/$/, '')
-        .toLowerCase();
+      const normalizedDomain = cleanDomain(domain);
+
+      // Validate domain format before making API call
+      if (!isValidDomain(normalizedDomain)) {
+        throw new Error('Please enter a valid domain (e.g., example.com)');
+      }
 
       const response = await fetch('/api/check', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ domain: cleanDomain }),
+        body: JSON.stringify({ domain: normalizedDomain }),
       });
 
       if (!response.ok) {
@@ -39,7 +41,7 @@ export function HeroSection({ stats, isLoading = false }: HeroSectionProps) {
         throw new Error(errorData.message || 'Failed to check domain');
       }
 
-      router.push(`/${cleanDomain}`);
+      router.push(`/d/${normalizedDomain}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
       setLoading(false);

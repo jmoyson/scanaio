@@ -15,6 +15,7 @@ export {
   insertScan,
   getLatestScan,
   getAllScans,
+  getScanCountByIP,
 } from './scans';
 
 // Domains - Domain stats

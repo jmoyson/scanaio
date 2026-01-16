@@ -12,6 +12,8 @@ export async function GET(
   // Fetch domain data
   const domainData = await getDomain(domain);
 
+  // If domain not found, show a "not scanned yet" state
+  const isScanned = domainData !== null;
   const withAIO = domainData?.keywords_with_aio || 0;
   const total = domainData?.keywords_analyzed || 0;
   const percentage = total > 0 ? Math.round((withAIO / total) * 100) : 0;
@@ -47,11 +49,11 @@ export async function GET(
           style={{
             fontSize: 80,
             fontWeight: 'bold',
-            color: '#EA580C',
+            color: isScanned ? '#EA580C' : '#6B7280',
             marginBottom: 20,
           }}
         >
-          {withAIO} / {total}
+          {isScanned ? `${withAIO} / ${total}` : 'Not scanned yet'}
         </div>
 
         {/* Label */}
@@ -61,29 +63,31 @@ export async function GET(
             color: '#6B7280',
           }}
         >
-          keywords affected by AI Overviews
+          {isScanned ? 'keywords affected by AI Overviews' : 'Check this domain for AI Overview impact'}
         </div>
 
-        {/* Progress bar */}
-        <div
-          style={{
-            width: '80%',
-            height: 20,
-            background: '#E5E7EB',
-            borderRadius: 10,
-            marginTop: 40,
-            overflow: 'hidden',
-            display: 'flex',
-          }}
-        >
+        {/* Progress bar - only show if scanned */}
+        {isScanned && (
           <div
             style={{
-              width: `${percentage}%`,
-              background: '#EA580C',
-              height: '100%',
+              width: '80%',
+              height: 20,
+              background: '#E5E7EB',
+              borderRadius: 10,
+              marginTop: 40,
+              overflow: 'hidden',
+              display: 'flex',
             }}
-          />
-        </div>
+          >
+            <div
+              style={{
+                width: `${percentage}%`,
+                background: '#EA580C',
+                height: '100%',
+              }}
+            />
+          </div>
+        )}
       </div>
     ),
     {

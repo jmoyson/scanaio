@@ -12,7 +12,7 @@ interface ShareButtonsProps {
 
 export function ShareButtons({ domain, impactPercentage, totalKeywords, affectedKeywords }: ShareButtonsProps) {
   const [copied, setCopied] = useState(false);
-  const [shareUrl, setShareUrl] = useState(`https://checkaioverviews.com/${domain}`);
+  const [shareUrl, setShareUrl] = useState(`https://checkaioverviews.com/d/${domain}`);
 
   useEffect(() => {
     setShareUrl(window.location.href);
