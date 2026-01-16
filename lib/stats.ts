@@ -4,16 +4,6 @@
  */
 
 import { supabaseAdmin } from './supabase';
-import { preSeedDomains, categories } from './pre-seed-domains';
-
-export interface Stats {
-  totalDomains: number;
-  totalKeywords: number;
-  avgAffectedPercent: number;
-  categories: CategoryStat[];
-  topDomains: DomainStat[];
-  keywordPatterns: KeywordPattern[];
-}
 
 export interface CategoryStat {
   name: string;
@@ -21,82 +11,71 @@ export interface CategoryStat {
   domainsCount: number;
 }
 
-export interface DomainStat {
-  domain: string;
-  category: string;
-  affectedPercent: number;
-  affectedCount: number;
-  totalCount: number;
+export interface Stats {
+  totalDomains: number;
+  totalKeywords: number;
+  avgAffectedPercent: number;
+  categories: CategoryStat[];
 }
 
-export interface KeywordPattern {
-  pattern: string;
-  affectedPercent: number;
-  examples: string[];
-  emoji: string;
-  description: string;
-}
-
-/**
- * Get stats (mocked for now, will fetch from scans table later)
- */
-export async function getStats(): Promise<Stats> {
-  // TODO: Later, fetch from scans table after running pre-seed scan
-  // For now, just return mock data
-  return getMockStats();
-}
+// Fake category data for beta (will be replaced with real data later)
+const FAKE_CATEGORIES: CategoryStat[] = [
+  { name: 'Health & Fitness', affectedPercent: 78, domainsCount: 42 },
+  { name: 'How-To & Tutorials', affectedPercent: 84, domainsCount: 38 },
+  { name: 'Technology', affectedPercent: 71, domainsCount: 56 },
+  { name: 'Finance', affectedPercent: 65, domainsCount: 31 },
+  { name: 'Food & Recipes', affectedPercent: 82, domainsCount: 27 },
+  { name: 'Travel', affectedPercent: 59, domainsCount: 23 },
+];
 
 /**
- * Mock stats (placeholder data for landing page)
+ * Get stats from Supabase scans table
+ * Falls back to defaults if no data available
  */
-function getMockStats(): Stats {
-  return {
-    totalDomains: 235,
-    totalKeywords: 10000,
-    avgAffectedPercent: 67,
-    categories: [
-      { name: 'Health & Fitness', affectedPercent: 78, domainsCount: 30 },
-      { name: 'Personal Finance', affectedPercent: 71, domainsCount: 25 },
-      { name: 'How-To Content', affectedPercent: 68, domainsCount: 25 },
-      { name: 'Food & Recipes', affectedPercent: 65, domainsCount: 15 },
-      { name: 'SEO Tools', affectedPercent: 34, domainsCount: 25 },
-    ],
-    topDomains: [
-      { domain: 'healthline.com', category: 'Health', affectedPercent: 87, affectedCount: 44, totalCount: 50 },
-      { domain: 'webmd.com', category: 'Health', affectedPercent: 82, affectedCount: 41, totalCount: 50 },
-      { domain: 'wikihow.com', category: 'How-To', affectedPercent: 79, affectedCount: 40, totalCount: 50 },
-      { domain: 'investopedia.com', category: 'Finance', affectedPercent: 76, affectedCount: 38, totalCount: 50 },
-      { domain: 'ahrefs.com', category: 'SEO Tools', affectedPercent: 60, affectedCount: 9, totalCount: 15 },
-    ],
-    keywordPatterns: [
-      {
-        pattern: '"How to..." queries',
-        affectedPercent: 84,
-        examples: ['how to lose weight', 'how to invest money', 'how to cook chicken'],
-        emoji: '🎯',
-        description: 'Step-by-step instructional queries are heavily impacted',
-      },
-      {
-        pattern: '"What is..." questions',
-        affectedPercent: 79,
-        examples: ['what is SEO', 'what is bitcoin', 'what is healthy eating'],
-        emoji: '❓',
-        description: 'Definition and explanation queries show AI Overviews first',
-      },
-      {
-        pattern: '"Best..." comparisons',
-        affectedPercent: 71,
-        examples: ['best protein powder', 'best credit cards', 'best travel tips'],
-        emoji: '⭐',
-        description: 'Comparison and recommendation queries increasingly affected',
-      },
-      {
-        pattern: 'Definition queries',
-        affectedPercent: 68,
-        examples: ['protein powder benefits', 'credit score meaning', 'calorie definition'],
-        emoji: '📖',
-        description: 'Simple informational queries often trigger AI summaries',
-      },
-    ],
-  };
+export async function getStats(): Promise<Stats | null> {
+  try {
+    // Get count of unique domains
+    const { count: totalDomains, error: countError } = await supabaseAdmin
+      .from('scans')
+      .select('*', { count: 'exact', head: true });
+
+    if (countError) {
+      console.error('Error fetching domain count:', countError);
+      return null;
+    }
+
+    // Get aggregated stats from all scans
+    const { data: scans, error: scansError } = await supabaseAdmin
+      .from('scans')
+      .select('keywords_total, keywords_with_aio');
+
+    if (scansError) {
+      console.error('Error fetching scans:', scansError);
+      return null;
+    }
+
+    // Calculate totals
+    let totalKeywords = 0;
+    let totalAffected = 0;
+
+    for (const scan of scans || []) {
+      totalKeywords += scan.keywords_total || 0;
+      totalAffected += scan.keywords_with_aio || 0;
+    }
+
+    // Calculate average affected percentage
+    const avgAffectedPercent = totalKeywords > 0
+      ? Math.round((totalAffected / totalKeywords) * 100)
+      : 0;
+
+    return {
+      totalDomains: totalDomains || 0,
+      totalKeywords,
+      avgAffectedPercent,
+      categories: FAKE_CATEGORIES,
+    };
+  } catch (error) {
+    console.error('Error in getStats:', error);
+    return null;
+  }
 }

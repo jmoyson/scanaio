@@ -17,8 +17,8 @@ export function Footer() {
         </div>
         <div className="flex items-center justify-center gap-6 text-sm text-white/40">
           <div>© {new Date().getFullYear()} CheckAIOverviews</div>
-          <a href="#" className="hover:text-white transition-colors">Privacy</a>
-          <a href="#" className="hover:text-white transition-colors">Terms</a>
+          <a href="/privacy" className="hover:text-white transition-colors">Privacy</a>
+          <a href="/terms" className="hover:text-white transition-colors">Terms</a>
         </div>
       </div>
     </footer>

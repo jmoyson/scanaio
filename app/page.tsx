@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { getStats, type Stats } from '@/lib/stats';
+import type { Stats } from '@/lib/stats';
 import { HeroSection } from '@/components/landing/hero-section';
+import { InsightsSection } from '@/components/landing/insights-section';
 import { CategorySection } from '@/components/landing/category-section';
 import { BenefitsSection } from '@/components/landing/benefits-section';
-import { InsightsSection } from '@/components/landing/insights-section';
 import { StrategySection } from '@/components/landing/strategy-section';
 import { FAQSection } from '@/components/landing/faq-section';
 import { CTASection } from '@/components/landing/cta-section';
@@ -15,7 +15,10 @@ export default function Home() {
   const [stats, setStats] = useState<Stats | null>(null);
 
   useEffect(() => {
-    getStats().then(setStats);
+    fetch('/api/stats')
+      .then(res => res.json())
+      .then(setStats)
+      .catch(console.error);
   }, []);
 
   return (

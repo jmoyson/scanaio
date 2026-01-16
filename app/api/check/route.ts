@@ -21,14 +21,54 @@ export const revalidate = 86400;
 // Prevent race condition: track pending DataForSEO requests
 const pendingRequests = new Map<string, Promise<any>>();
 
+// Rate limiting: 10 domains per IP per day (resets on deploy)
+const rateLimitMap = new Map<string, number[]>();
+const RATE_LIMIT_WINDOW_MS = 24 * 60 * 60 * 1000; // 24 hours
+const RATE_LIMIT_MAX_REQUESTS = 10; // 10 domains per day per IP
+
+function checkRateLimit(ip: string): { limited: boolean; resetInHours?: number } {
+  const now = Date.now();
+  const requests = rateLimitMap.get(ip) || [];
+
+  // Filter to requests within the 24h window
+  const recentRequests = requests.filter(ts => now - ts < RATE_LIMIT_WINDOW_MS);
+
+  if (recentRequests.length >= RATE_LIMIT_MAX_REQUESTS) {
+    // Calculate hours until oldest request expires
+    const oldestRequest = Math.min(...recentRequests);
+    const resetIn = RATE_LIMIT_WINDOW_MS - (now - oldestRequest);
+    const resetInHours = Math.ceil(resetIn / (60 * 60 * 1000));
+    return { limited: true, resetInHours };
+  }
+
+  // Add current request
+  rateLimitMap.set(ip, [...recentRequests, now]);
+  return { limited: false };
+}
+
 const isDev = process.env.NODE_ENV === 'development';
 
 export async function POST(request: Request) {
   try {
+    // Get client IP for rate limiting
+    const forwardedFor = request.headers.get('x-forwarded-for');
+    const ip = forwardedFor?.split(',')[0]?.trim() || 'unknown';
+
+    // Check rate limit (10 domains per day)
+    const rateLimitResult = checkRateLimit(ip);
+    if (rateLimitResult.limited) {
+      const hours = rateLimitResult.resetInHours || 24;
+      const error: APIError = {
+        error: 'Daily Limit Reached',
+        message: `You've scanned 10 domains today. Try again in ${hours} hour${hours > 1 ? 's' : ''}.`,
+      };
+      return NextResponse.json(error, { status: 429 });
+    }
+
     const body: CheckRequest = await request.json();
     const { domain } = body;
 
-    if (isDev) console.log('[API /check] Request for domain:', domain);
+    if (isDev) console.log('[API /check] Request for domain:', domain, 'from IP:', ip);
 
     // 1. Validate domain
     if (!domain || typeof domain !== 'string') {
