@@ -1,4 +1,5 @@
 import { ArrowRight } from 'lucide-react';
+import { OUTRANK_URL, OUTRANK_COUPON } from '@/lib/outrank';
 
 export function CTASection() {
   return (
@@ -13,7 +14,7 @@ export function CTASection() {
           </p>
 
           <a
-            href="https://outrank.so"
+            href={OUTRANK_URL}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-3 px-8 py-4 bg-[#FF4500] text-white font-black text-sm uppercase tracking-wider hover:bg-[#FF4500]/90 transition-all border-2 border-[#FF4500]"
@@ -24,7 +25,13 @@ export function CTASection() {
             <ArrowRight className="w-5 h-5" />
           </a>
 
-          <div className="mt-6 text-sm text-black/50">
+          {OUTRANK_COUPON && (
+            <div className="mt-4 text-xs text-black/40">
+              Use code <span className="font-mono text-black/60">{OUTRANK_COUPON}</span> for 10% off your first month
+            </div>
+          )}
+
+          <div className="mt-4 text-sm text-black/50">
             Track which AI Overviews cite your content and optimize to appear more
           </div>
         </div>

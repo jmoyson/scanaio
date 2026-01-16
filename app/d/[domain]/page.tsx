@@ -6,6 +6,7 @@ import { Footer } from '@/components/landing/footer';
 import { ArrowLeft, ExternalLink } from 'lucide-react';
 import { getDomain } from '@/lib/db';
 import { isValidDomain } from '@/lib/domain-utils';
+import { OUTRANK_URL, OUTRANK_COUPON } from '@/lib/outrank';
 
 interface Props {
   params: Promise<{ domain: string }>;
@@ -205,7 +206,7 @@ export default async function ResultsPage({ params }: Props) {
               Stop losing traffic to AI. Get your content cited instead.
             </p>
             <a
-              href="https://outrank.so"
+              href={OUTRANK_URL}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 px-8 py-3 bg-[#FF4500] text-white font-bold text-sm uppercase tracking-wider hover:bg-[#FF4500]/90 transition-all button-press"
@@ -215,6 +216,11 @@ export default async function ResultsPage({ params }: Props) {
               Learn More at Outrank
               <ExternalLink className="w-4 h-4" />
             </a>
+            {OUTRANK_COUPON && (
+              <p className="mt-4 text-xs text-black/40">
+                Use code <span className="font-mono text-black/60">{OUTRANK_COUPON}</span> for 10% off your first month
+              </p>
+            )}
           </div>
         </section>
       </div>

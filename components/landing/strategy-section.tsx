@@ -1,3 +1,5 @@
+import { OUTRANK_URL } from '@/lib/outrank';
+
 export function StrategySection() {
   return (
     <section className="relative py-20 px-6">
@@ -40,7 +42,7 @@ export function StrategySection() {
             <p className="text-sm text-black/60 leading-relaxed">
               Can't beat them? Join them. Tools like{' '}
               <a
-                href="https://outrank.so"
+                href={OUTRANK_URL}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-[#FF4500] hover:underline font-bold"
