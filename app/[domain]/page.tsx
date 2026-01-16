@@ -1,8 +1,15 @@
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
-import { ResultsList } from '@/components/results-list';
-import { ShareButtons } from '@/components/share-buttons';
-import { StatCard } from '@/components/stat-card';
+import { KeywordsTable } from '@/components/results/keywords-table';
+import { ShareButtons } from '@/components/results/share-buttons';
+import { Footer } from '@/components/landing/footer';
+import {
+  AlertTriangle,
+  Sparkles,
+  CheckCircle,
+  ArrowLeft,
+  ExternalLink,
+} from 'lucide-react';
 
 interface Props {
   params: Promise<{ domain: string }>;
@@ -25,14 +32,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function ResultsPage({ params }: Props) {
   const { domain } = await params;
 
-  // Fetch scan data from API
   const response = await fetch(
     `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/check`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ domain }),
-      cache: 'no-store', // Always fetch fresh
+      cache: 'no-store',
     }
   );
 
@@ -42,119 +48,186 @@ export default async function ResultsPage({ params }: Props) {
 
   const data = await response.json();
 
-  const stolenCount = data.keywords.filter((k: any) => k.aiOverviewStatus === 'stolen').length;
-  const referencedCount = data.keywords.filter((k: any) => k.aiOverviewStatus === 'referenced').length;
-  const safeCount = data.keywords.filter((k: any) => k.aiOverviewStatus === 'safe').length;
-  const impactPercentage = data.stats.total > 0
-    ? Math.round((data.stats.withAIO / data.stats.total) * 100)
-    : 0;
-
   // Handle empty results
   if (data.stats.total === 0) {
     return (
-      <main className="min-h-screen bg-gray-50 py-16 px-4">
-        <div className="max-w-3xl mx-auto">
-          <div className="text-center mb-12">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white border border-gray-200 mb-6">
-              <span className="text-sm text-gray-600">{domain}</span>
-            </div>
-            <h1 className="text-4xl font-bold text-gray-900 mb-4">
+      <main className="min-h-screen bg-white">
+        {/* Background Grid */}
+        <div className="fixed inset-0 opacity-[0.015] pointer-events-none" style={{
+          backgroundImage: 'linear-gradient(black 1px, transparent 1px), linear-gradient(90deg, black 1px, transparent 1px)',
+          backgroundSize: '50px 50px'
+        }} />
+        <div className="fixed top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-[#FF4500] to-transparent opacity-60 z-50" />
+
+        <div className="relative max-w-3xl mx-auto text-center py-32 px-6">
+          <div className="animate-fade-in-up">
+            <h1 className="text-4xl md:text-5xl font-black text-black mb-4 tracking-tight">
               No Ranking Keywords Found
             </h1>
-          </div>
-
-          <div className="bg-white rounded-2xl p-8 border border-gray-200">
-            <p className="text-lg text-gray-700 mb-4">
-              We couldn&apos;t find any ranking keywords for this domain.
+            <p className="text-lg text-black/60 mb-2">
+              We could not find any ranking keywords for <span className="font-bold text-black">{domain}</span>
             </p>
-            <p className="text-gray-600 mb-4">This could mean:</p>
-            <ul className="space-y-2 text-gray-600 mb-6">
-              <li className="flex items-start gap-2">
-                <span className="text-gray-400 mt-1">•</span>
-                <span>The domain is new or has low rankings in search results</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-gray-400 mt-1">•</span>
-                <span>The domain doesn&apos;t rank in US English results (we currently only track US/English)</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-gray-400 mt-1">•</span>
-                <span>There might be a temporary issue with our data provider</span>
-              </li>
-            </ul>
-            <div className="text-center">
-              <a
-                href="/"
-                className="inline-block px-6 py-3 bg-gray-900 text-white font-medium rounded-lg hover:bg-gray-800 transition"
-              >
-                Try Another Domain
-              </a>
-            </div>
+            <p className="text-base text-black/40 mb-10">
+              This could mean the domain is new, has low rankings, or does not rank in US English results.
+            </p>
+            <a
+              href="/"
+              className="inline-block px-10 py-4 bg-[#FF4500] text-white font-black text-sm uppercase tracking-wider hover:bg-[#FF4500]/90 transition-all border-2 border-[#FF4500] button-press"
+            >
+              Try Another Domain
+            </a>
           </div>
         </div>
       </main>
     );
   }
 
+  const stolenCount = data.keywords.filter((k: any) => k.aiOverviewStatus === 'stolen').length;
+  const referencedCount = data.keywords.filter((k: any) => k.aiOverviewStatus === 'referenced').length;
+  const safeCount = data.keywords.filter((k: any) => k.aiOverviewStatus === 'safe').length;
+  const impactPercentage = Math.round((data.stats.withAIO / data.stats.total) * 100);
+
   return (
-    <main className="min-h-screen bg-gray-50 py-16 px-4">
-      <div className="max-w-6xl mx-auto">
+    <main className="min-h-screen bg-white text-black">
+      {/* Background Grid */}
+      <div className="fixed inset-0 opacity-[0.015] pointer-events-none" style={{
+        backgroundImage: 'linear-gradient(black 1px, transparent 1px), linear-gradient(90deg, black 1px, transparent 1px)',
+        backgroundSize: '50px 50px'
+      }} />
+
+      {/* Top Accent Line */}
+      <div className="fixed top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-[#FF4500] to-transparent opacity-60 z-50" />
+
+      <div className="relative max-w-5xl mx-auto px-6 py-12 md:py-16">
         {/* Header */}
-        <div className="text-center mb-12">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white border border-gray-200 mb-6">
-            <span className="text-sm text-gray-600">{domain}</span>
+        <header className="mb-8 md:mb-10">
+          {/* Back Link */}
+          <div className="mb-6 animate-fade-in">
+            <a href="/" className="inline-flex items-center gap-2 text-sm text-black/40 hover:text-black transition-colors group">
+              <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+              <span>Scan another domain</span>
+            </a>
           </div>
-          <h1 className="text-5xl font-bold text-gray-900 mb-4">
-            {impactPercentage}% of Your Traffic
-            <br />
-            <span className="bg-gradient-to-r from-red-600 to-orange-600 bg-clip-text text-transparent">
-              at Risk
+
+          {/* Domain + Key Insight */}
+          <div className="text-center animate-fade-in-up">
+            {/* Domain - The Anchor */}
+            <h1 className="text-2xl md:text-3xl lg:text-4xl font-black tracking-tight text-black mb-3">
+              {domain}
+            </h1>
+
+            {/* Label */}
+            <p className="text-[10px] md:text-xs text-black/40 uppercase tracking-[0.2em] font-bold mb-6">
+              AI Overview Impact Report
+            </p>
+
+            {/* Key Insight - The Main Number */}
+            <div className="mb-2">
+              <span className="text-5xl md:text-6xl lg:text-7xl font-black tracking-tighter">
+                <span className="text-[#FF4500]">{data.stats.withAIO}</span>
+                <span className="text-black/20 mx-1 md:mx-2">/</span>
+                <span className="text-black">{data.stats.total}</span>
+              </span>
+            </div>
+
+            {/* Supporting Text */}
+            <p className="text-base md:text-lg text-black/50 font-light">
+              keywords affected by AI Overviews
+            </p>
+
+            {/* Scan Timestamp */}
+            <p className="text-[10px] text-black/30 mt-4 font-mono">
+              Scanned {new Date(data.cachedAt).toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+              })}
+            </p>
+          </div>
+        </header>
+
+        {/* Stats Cards - Compact with icons */}
+        <section className="mb-6 md:mb-8 animate-fade-in-up animation-delay-200">
+          <div className="grid grid-cols-3 gap-2 md:gap-4">
+            {/* At Risk */}
+            <div className="border border-red-200 bg-red-50 p-3 md:p-5">
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <AlertTriangle className="w-4 h-4 md:w-5 md:h-5 text-[#FF4500]" />
+                <span className="text-xs md:text-sm font-bold text-[#FF4500] uppercase">At Risk</span>
+              </div>
+              <div className="text-3xl md:text-4xl font-black text-[#FF4500]">{stolenCount}</div>
+              <div className="text-[10px] md:text-xs text-black/50 mt-1">AI steals your clicks</div>
+            </div>
+            {/* Cited */}
+            <div className="border border-orange-200 bg-orange-50 p-3 md:p-5">
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <Sparkles className="w-4 h-4 md:w-5 md:h-5 text-orange-500" />
+                <span className="text-xs md:text-sm font-bold text-orange-500 uppercase">Cited</span>
+              </div>
+              <div className="text-3xl md:text-4xl font-black text-orange-500">{referencedCount}</div>
+              <div className="text-[10px] md:text-xs text-black/50 mt-1">You appear in AI</div>
+            </div>
+            {/* Safe */}
+            <div className="border border-green-200 bg-green-50 p-3 md:p-5">
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <CheckCircle className="w-4 h-4 md:w-5 md:h-5 text-green-600" />
+                <span className="text-xs md:text-sm font-bold text-green-600 uppercase">Safe</span>
+              </div>
+              <div className="text-3xl md:text-4xl font-black text-green-600">{safeCount}</div>
+              <div className="text-[10px] md:text-xs text-black/50 mt-1">No AI Overview</div>
+            </div>
+          </div>
+        </section>
+
+        {/* Keywords Section */}
+        <section className="mb-8 animate-fade-in-up animation-delay-300">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+            <h2 className="text-lg md:text-xl font-black text-black tracking-tight">
+              Keyword Analysis
+            </h2>
+            <span className="text-xs text-black/40 font-mono">
+              {data.keywords.length} keywords
             </span>
-          </h1>
-          <p className="text-xl text-gray-600">
-            {data.stats.withAIO} out of {data.stats.total} keywords affected by AI Overviews
-          </p>
-        </div>
+          </div>
+          <KeywordsTable keywords={data.keywords} />
+        </section>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-12">
-          <StatCard status="stolen" count={stolenCount} description="No credit given" />
-          <StatCard status="referenced" count={referencedCount} description="You're cited" />
-          <StatCard status="safe" count={safeCount} description="Full traffic" />
-        </div>
-
-        {/* Results */}
-        <div className="mb-12">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">Keyword Breakdown</h2>
-          <ResultsList keywords={data.keywords} />
-        </div>
-
-        {/* Share Section */}
-        <div className="bg-white rounded-2xl p-8 border border-gray-200 text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-3">Share Your Results</h2>
-          <p className="text-gray-600 mb-6">Help others discover how AI is affecting their traffic</p>
+        {/* Share Section - Compact */}
+        <section className="mb-10 animate-fade-in animation-delay-300">
           <ShareButtons
             domain={domain}
-            stolenCount={data.stats.withAIO}
-            totalCount={data.stats.total}
+            impactPercentage={impactPercentage}
+            totalKeywords={data.stats.total}
+            affectedKeywords={data.stats.withAIO}
           />
-        </div>
+        </section>
 
-        {/* Footer */}
-        <div className="mt-8 text-center">
-          <p className="text-xs text-gray-400">
-            Questions?{' '}
+        {/* CTA Section - Clean */}
+        <section className="animate-fade-in-up animation-delay-400">
+          <div className="bg-gray-50 border border-black/10 p-6 md:p-10 text-center">
+            <h3 className="text-xl md:text-2xl font-black text-black mb-2 tracking-tight">
+              Want to get cited in AI Overviews?
+            </h3>
+            <p className="text-sm md:text-base text-black/50 mb-6 max-w-md mx-auto">
+              Turn "At Risk" keywords into "Cited" and recover your traffic.
+            </p>
             <a
-              href="https://twitter.com/yourusername"
+              href="https://outrank.so"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-gray-500 hover:text-gray-700 transition-colors underline decoration-dotted"
+              className="inline-flex items-center gap-2 px-8 py-3 bg-[#FF4500] text-white font-bold text-sm uppercase tracking-wider hover:bg-[#FF4500]/90 transition-all button-press"
             >
-              @yourusername
+              Learn More at Outrank
+              <ExternalLink className="w-4 h-4" />
             </a>
-          </p>
-        </div>
+          </div>
+        </section>
       </div>
+
+      {/* Footer */}
+      <Footer />
     </main>
   );
 }
