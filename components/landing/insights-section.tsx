@@ -25,25 +25,27 @@ const intentInfo: Record<string, { examples: string; recommendation: string }> =
   },
 };
 
-// Get color intensity based on percentage
+// Get color based on position (high risk = orange, safer = neutral/green)
 function getIntentColor(percent: number, isHighRisk: boolean): string {
   if (isHighRisk) {
-    if (percent >= 70) return 'border-[#FF4500] text-[#FF4500]';
-    if (percent >= 50) return 'border-[#FF4500]/70 text-[#FF4500]/80';
-    return 'border-[#FF4500]/50 text-[#FF4500]/60';
+    // Orange shades for high risk section
+    if (percent >= 60) return 'border-[#FF4500] text-[#FF4500]';
+    return 'border-[#FF4500]/70 text-[#FF4500]/80';
   }
-  if (percent <= 30) return 'border-green-500 text-green-600';
-  if (percent <= 50) return 'border-black/30 text-black';
-  return 'border-black/20 text-black/80';
+  // Neutral/green for safer section
+  if (percent <= 35) return 'border-green-500 text-green-600';
+  return 'border-black/40 text-black/70';
 }
 
 export function InsightsSection({ stats }: InsightsSectionProps) {
   const intentStats = stats?.intentStats;
   const hasIntentData = intentStats && intentStats.intents.length > 0;
 
-  // Split intents into high risk (>50%) and safer (<50%)
-  const highRiskIntents = intentStats?.intents.filter(i => i.affectedPercent >= 50) || [];
-  const saferIntents = intentStats?.intents.filter(i => i.affectedPercent < 50) || [];
+  // Split intents evenly: top 2 most affected on left, rest on right
+  // Intents are already sorted by affectedPercent descending
+  const allIntents = intentStats?.intents || [];
+  const highRiskIntents = allIntents.slice(0, 2); // Top 2 most affected
+  const saferIntents = allIntents.slice(2);       // Rest (lower affected)
 
   return (
     <section className="relative py-20 px-6 bg-gray-50">
@@ -193,7 +195,7 @@ export function InsightsSection({ stats }: InsightsSectionProps) {
 
         <div className="mt-12 text-center">
           <p className="text-sm text-black/50 max-w-3xl mx-auto">
-            <strong>Key Takeaway:</strong> Keywords with AI Overviews still rank #1-3, but get 40-60% fewer clicks on average. The solution isn't to stop ranking—it's to rank for the right keywords.
+            <strong>Key Takeaway:</strong> Even top-ranking keywords lose 40-60% of clicks when AI Overviews appear. Focus on keywords where users still need to visit your site.
           </p>
         </div>
       </div>

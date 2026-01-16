@@ -8,7 +8,7 @@ import { getStats } from '@/lib/stats';
 import type { Stats } from '@/lib/stats';
 
 export const runtime = 'edge';
-export const revalidate = 3600; // Cache for 1 hour
+export const revalidate = 60; // Cache for 1 minute - quick updates when new domains are scanned
 
 // Default stats when no data is available
 const defaultStats: Stats = {

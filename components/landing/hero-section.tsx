@@ -7,9 +7,10 @@ import type { Stats } from '@/lib/stats';
 
 interface HeroSectionProps {
   stats: Stats | null;
+  isLoading?: boolean;
 }
 
-export function HeroSection({ stats }: HeroSectionProps) {
+export function HeroSection({ stats, isLoading = false }: HeroSectionProps) {
   const [domain, setDomain] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -117,7 +118,11 @@ export function HeroSection({ stats }: HeroSectionProps) {
         <div className="grid grid-cols-3 gap-1 max-w-4xl mx-auto">
           <div className="bg-black/5 border border-black/10 p-6 text-center hover:bg-black/10 transition-all group">
             <div className="text-3xl md:text-4xl font-black text-black mb-2 group-hover:scale-110 transition-transform">
-              {stats?.avgAffectedPercent || 67}%
+              {isLoading ? (
+                <span className="inline-block w-16 h-8 bg-black/10 animate-pulse rounded" />
+              ) : (
+                <>{stats?.avgAffectedPercent || 0}%</>
+              )}
             </div>
             <div className="text-xs md:text-sm text-black/50 uppercase tracking-wider font-bold">
               Avg Keywords Affected
@@ -125,7 +130,11 @@ export function HeroSection({ stats }: HeroSectionProps) {
           </div>
           <div className="bg-black/5 border border-black/10 p-6 text-center hover:bg-black/10 transition-all group">
             <div className="text-3xl md:text-4xl font-black text-black mb-2 group-hover:scale-110 transition-transform">
-              {stats?.totalDomains || 235}+
+              {isLoading ? (
+                <span className="inline-block w-12 h-8 bg-black/10 animate-pulse rounded" />
+              ) : (
+                <>{stats?.totalDomains || 0}+</>
+              )}
             </div>
             <div className="text-xs md:text-sm text-black/50 uppercase tracking-wider font-bold">
               Domains Scanned
@@ -133,7 +142,11 @@ export function HeroSection({ stats }: HeroSectionProps) {
           </div>
           <div className="bg-black/5 border border-black/10 p-6 text-center hover:bg-black/10 transition-all group">
             <div className="text-3xl md:text-4xl font-black text-black mb-2 group-hover:scale-110 transition-transform">
-              {stats ? `${stats.totalKeywords.toLocaleString().replace(',', '')}` : '10K'}+
+              {isLoading ? (
+                <span className="inline-block w-16 h-8 bg-black/10 animate-pulse rounded" />
+              ) : (
+                <>{stats?.totalKeywords?.toLocaleString() || 0}+</>
+              )}
             </div>
             <div className="text-xs md:text-sm text-black/50 uppercase tracking-wider font-bold">
               Keywords Analyzed

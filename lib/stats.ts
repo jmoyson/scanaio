@@ -1,6 +1,7 @@
 /**
  * Stats calculation from cached scans
  * Uses existing `scans` table and parses raw_response for detailed stats
+ * Caching is handled at the API route level via Next.js revalidate
  */
 
 import { supabaseAdmin } from './supabase';
