@@ -209,6 +209,8 @@ export default async function ResultsPage({ params }: Props) {
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 px-8 py-3 bg-[#FF4500] text-white font-bold text-sm uppercase tracking-wider hover:bg-[#FF4500]/90 transition-all button-press"
+              data-umami-event="cta_outrank"
+              data-umami-event-location="results_page"
             >
               Learn More at Outrank
               <ExternalLink className="w-4 h-4" />

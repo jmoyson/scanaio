@@ -8,10 +8,9 @@ import { isValidDomain, cleanDomain } from '@/lib/domain-utils';
 
 interface HeroSectionProps {
   stats: Stats | null;
-  isLoading?: boolean;
 }
 
-export function HeroSection({ stats, isLoading = false }: HeroSectionProps) {
+export function HeroSection({ stats }: HeroSectionProps) {
   const [domain, setDomain] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -47,6 +46,9 @@ export function HeroSection({ stats, isLoading = false }: HeroSectionProps) {
       setLoading(false);
     }
   };
+
+  // Clean domain for tracking (same logic as submit)
+  const trackingDomain = cleanDomain(domain) || 'empty';
 
   return (
     <section className="relative min-h-screen flex items-center justify-center px-6 py-20">
@@ -87,6 +89,8 @@ export function HeroSection({ stats, isLoading = false }: HeroSectionProps) {
                   type="submit"
                   disabled={loading || !domain}
                   className="px-10 py-4 bg-[#FF4500] text-white font-black text-sm uppercase tracking-wider hover:bg-[#FF4500]/90 disabled:opacity-30 disabled:cursor-not-allowed transition-all border-2 border-[#FF4500]"
+                  data-umami-event="scan_started"
+                  data-umami-event-domain={trackingDomain}
                 >
                   {loading ? 'SCANNING' : 'SCAN NOW'}
                 </button>
@@ -120,11 +124,7 @@ export function HeroSection({ stats, isLoading = false }: HeroSectionProps) {
         <div className="grid grid-cols-3 gap-1 max-w-4xl mx-auto">
           <div className="bg-black/5 border border-black/10 p-6 text-center hover:bg-black/10 transition-all group">
             <div className="text-3xl md:text-4xl font-black text-black mb-2 group-hover:scale-110 transition-transform">
-              {isLoading ? (
-                <span className="inline-block w-16 h-8 bg-black/10 animate-pulse rounded" />
-              ) : (
-                <>{stats?.avgAioPercent || 0}%</>
-              )}
+              {stats?.avgAioPercent || 0}%
             </div>
             <div className="text-xs md:text-sm text-black/50 uppercase tracking-wider font-bold">
               Avg Keywords Affected
@@ -132,11 +132,7 @@ export function HeroSection({ stats, isLoading = false }: HeroSectionProps) {
           </div>
           <div className="bg-black/5 border border-black/10 p-6 text-center hover:bg-black/10 transition-all group">
             <div className="text-3xl md:text-4xl font-black text-black mb-2 group-hover:scale-110 transition-transform">
-              {isLoading ? (
-                <span className="inline-block w-12 h-8 bg-black/10 animate-pulse rounded" />
-              ) : (
-                <>{stats?.totalDomains || 0}+</>
-              )}
+              {stats?.totalDomains || 0}+
             </div>
             <div className="text-xs md:text-sm text-black/50 uppercase tracking-wider font-bold">
               Domains Scanned
@@ -144,11 +140,7 @@ export function HeroSection({ stats, isLoading = false }: HeroSectionProps) {
           </div>
           <div className="bg-black/5 border border-black/10 p-6 text-center hover:bg-black/10 transition-all group">
             <div className="text-3xl md:text-4xl font-black text-black mb-2 group-hover:scale-110 transition-transform">
-              {isLoading ? (
-                <span className="inline-block w-16 h-8 bg-black/10 animate-pulse rounded" />
-              ) : (
-                <>{stats?.totalKeywords?.toLocaleString() || 0}+</>
-              )}
+              {stats?.totalKeywords?.toLocaleString() || 0}+
             </div>
             <div className="text-xs md:text-sm text-black/50 uppercase tracking-wider font-bold">
               Rankings Analyzed

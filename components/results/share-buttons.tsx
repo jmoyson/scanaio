@@ -49,6 +49,8 @@ export function ShareButtons({ domain, impactPercentage, totalKeywords, affected
         onClick={handleShareTwitter}
         className="p-2 bg-black text-white hover:bg-black/80 transition-all"
         title="Share on X"
+        data-umami-event="share_twitter"
+        data-umami-event-domain={domain}
       >
         <Twitter className="w-4 h-4" />
       </button>
@@ -56,6 +58,8 @@ export function ShareButtons({ domain, impactPercentage, totalKeywords, affected
         onClick={handleShareLinkedIn}
         className="p-2 bg-[#0A66C2] text-white hover:bg-[#0A66C2]/80 transition-all"
         title="Share on LinkedIn"
+        data-umami-event="share_linkedin"
+        data-umami-event-domain={domain}
       >
         <Linkedin className="w-4 h-4" />
       </button>
@@ -67,6 +71,8 @@ export function ShareButtons({ domain, impactPercentage, totalKeywords, affected
             : 'bg-black/5 text-black/60 hover:bg-black/10'
         }`}
         title="Copy link"
+        data-umami-event="share_copy"
+        data-umami-event-domain={domain}
       >
         {copied ? <Check className="w-4 h-4" /> : <Link2 className="w-4 h-4" />}
       </button>

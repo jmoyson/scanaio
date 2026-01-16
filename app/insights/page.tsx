@@ -1,24 +1,16 @@
-"use client";
-
-import { useEffect, useState } from 'react';
-import type { Stats } from '@/lib/stats';
+import { getStats } from '@/lib/stats';
 import { SeverityDistributionSection } from '@/components/landing/severity-distribution';
 import { InsightsSection } from '@/components/landing/insights-section';
 import { StrategySection } from '@/components/landing/strategy-section';
 import { Footer } from '@/components/landing/footer';
 import Link from 'next/link';
 
-export default function InsightsPage() {
-  const [stats, setStats] = useState<Stats | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+// Revalidate every 60 seconds (ISR)
+export const revalidate = 60;
 
-  useEffect(() => {
-    fetch('/api/stats')
-      .then(res => res.json())
-      .then(setStats)
-      .catch(console.error)
-      .finally(() => setIsLoading(false));
-  }, []);
+export default async function InsightsPage() {
+  // Fetch stats on server - cached via ISR
+  const stats = await getStats();
 
   return (
     <main className="min-h-screen bg-white text-black">
@@ -58,21 +50,17 @@ export default function InsightsPage() {
         </div>
       </section>
 
-      {/* Loading State */}
-      {isLoading && (
-        <div className="py-20 text-center">
-          <div className="inline-block w-8 h-8 border-4 border-[#FF4500]/20 border-t-[#FF4500] rounded-full animate-spin" />
-          <p className="mt-4 text-black/50">Loading insights...</p>
-        </div>
-      )}
-
       {/* Stats Sections */}
-      {!isLoading && stats && (
+      {stats ? (
         <>
           <SeverityDistributionSection distribution={stats.severityDistribution} />
           <InsightsSection stats={stats} />
           <StrategySection />
         </>
+      ) : (
+        <div className="py-20 text-center">
+          <p className="text-black/50">No data available yet. Scan some domains first!</p>
+        </div>
       )}
 
       {/* CTA */}

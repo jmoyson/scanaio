@@ -44,6 +44,8 @@ export function StrategySection() {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-[#FF4500] hover:underline font-bold"
+                data-umami-event="cta_outrank"
+                data-umami-event-location="insights_strategy"
               >
                 Outrank
               </a>

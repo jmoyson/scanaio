@@ -17,6 +17,8 @@ export function CTASection() {
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-3 px-8 py-4 bg-[#FF4500] text-white font-black text-sm uppercase tracking-wider hover:bg-[#FF4500]/90 transition-all border-2 border-[#FF4500]"
+            data-umami-event="cta_outrank"
+            data-umami-event-location="homepage"
           >
             Try Outrank
             <ArrowRight className="w-5 h-5" />
