@@ -19,8 +19,8 @@ export function ShareButtons({ domain, impactPercentage, totalKeywords, affected
   }, []);
 
   const tweetText = impactPercentage >= 50
-    ? `${impactPercentage}% of ${domain}'s keywords trigger Google AI Overviews`
-    : `${affectedKeywords}/${totalKeywords} keywords on ${domain} trigger AI Overviews`;
+    ? `ScanAIO.com\n\n${impactPercentage}% of ${domain}'s keywords trigger Google AI Overviews`
+    : `ScanAIO.com\n\n${affectedKeywords}/${totalKeywords} keywords on ${domain} trigger AI Overviews`;
 
   const handleCopyLink = async () => {
     try {
@@ -33,7 +33,7 @@ export function ShareButtons({ domain, impactPercentage, totalKeywords, affected
   };
 
   const handleShareTwitter = () => {
-    const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}&url=${encodeURIComponent(shareUrl)}`;
+    const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}`;
     window.open(url, '_blank', 'width=550,height=420');
   };
 
